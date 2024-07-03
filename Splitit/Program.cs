@@ -35,7 +35,7 @@ internal class Program
         var actorProviderConfig = configuration.GetSection("ActorProviders");
 
         //for providers we should use dynamic factory (at this scope will not be implemnted due to time limitation) 
-        services.AddTransient<IActorProvider, ImdbActorProvider>();
+        services.AddSingleton<IActorProvider, ImdbActorProvider>();
         services.AddScoped<ActorService>();
 
         services.AddEndpointsApiExplorer();
@@ -47,7 +47,7 @@ internal class Program
         services.AddSwaggerExamplesFromAssemblyOf<Program>();
     }
 
-    private static void Configure(WebApplication app)
+    private static async void Configure(WebApplication app)
     {
         if (app.Environment.IsDevelopment())
         {
@@ -59,5 +59,14 @@ internal class Program
         app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseAuthorization();
         app.MapControllers();
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var imdbActorProvider = scope.ServiceProvider.GetRequiredService<IActorProvider>() as ImdbActorProvider;
+            if (imdbActorProvider != null)
+            {
+                await imdbActorProvider.LoadActorsFromImdbAsync();
+            }
+        }
     }
 }
